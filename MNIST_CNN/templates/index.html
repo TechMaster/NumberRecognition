@@ -15,12 +15,23 @@
         }
 
         .col-2 {
-            min-width: 30%;
+            width: 30%;
+            text-align: center;
         }
 
         button {
             padding: 10px 15px;
             min-width: 80px;
+        }
+
+        .number {
+            margin: 0;
+            font-size: 150px;
+        }
+
+        .percent {
+            margin: 0;
+            font-size: 50px;
         }
     </style>
 </head>
@@ -42,13 +53,15 @@
         <div class="col-2">
             <h2>Back Propagation</h2>
 
-            <p id="result1"></p>
+            <p id="bpn" class="number"></p>
+            <p id="confident_bpn" class="percent"></p>
         </div>
 
         <div class="col-2">
             <h2>Convolution</h2>
 
-            <p id="result2"></p>
+            <p id="cnn" class="number"></p>
+            <p id="confident_cnn" class="percent"></p>
         </div>
     </div>
 </div>
@@ -222,8 +235,12 @@
                 }
             }).done(function(result) {
                 console.log(result);
-                //document.getElementById('result1').innerText = result;
-                //document.getElementById('result2').innerText = result;
+                result = JSON.parse(result);
+
+                document.getElementById('cnn').innerText = result.number_cnn;
+                document.getElementById('bpn').innerText = result.number_bpn;
+                document.getElementById('confident_cnn').innerText = result.confident_cnn.toFixed(2)*100 + '%';
+                document.getElementById('confident_bpn').innerText = result.confident_bpn.toFixed(2)*100 + '%';
             });
         }
 
