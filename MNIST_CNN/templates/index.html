@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>by bác bảo vệ</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <style>
+        .container-fluid {
+            padding: 15px;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .col-2 {
+            min-width: 30%;
+        }
+
+        button {
+            padding: 10px 15px;
+            min-width: 80px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid">
+    <h1>Nhận dạng chữ số</h1>
+
+    <div class="row">
+        <div class="col">
+            <p>
+                <button id="btnClear" onclick="clearSketcher();">Xoá</button>&nbsp;
+                <button id="btnPredict" onclick="predictOnServer();">Dự đoán</button>
+            </p>
+
+            <canvas id="sketcher" width="224px" height="224px"/>
+        </div>
+
+        <div class="col-2">
+            <h2>Back Propagation</h2>
+
+            <p id="result1"></p>
+        </div>
+
+        <div class="col-2">
+            <h2>Convolution</h2>
+
+            <p id="result2"></p>
+        </div>
+    </div>
+</div>
+
+<script src="/js/jquery-3.4.1.min.js"></script>
+<script>
+        "use strict";
+        var canvas = document.getElementById('sketcher');
+        var context = canvas.getContext("2d");
+        context.strokeStyle = "#FFFFFF";
+        context.lineJoin = "round";
+        context.lineWidth = 15;
+        context.fillStyle = "black";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+
+        var clickX = [];
+        var clickY = [];
+        var clickDrag = [];
+        var paint;
+
+        /**
+         * Add information where the user clicked at.
+         * @param {number} x
+         * @param {number} y
+         * @return {boolean} dragging
+         */
+        function addClick(x, y, dragging) {
+            clickX.push(x);
+            clickY.push(y);
+            clickDrag.push(dragging);
+        }
+
+        /**
+         * Redraw the complete canvas.
+         */
+        function redraw() {
+            // Clears the canvas
+            context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+
+            for (var i = 0; i < clickX.length; i += 1) {
+                if (!clickDrag[i] && i == 0) {
+                    context.beginPath();
+                    context.moveTo(clickX[i], clickY[i]);
+                    context.stroke();
+                } else if (!clickDrag[i] && i > 0) {
+                    context.closePath();
+
+                    context.beginPath();
+                    context.moveTo(clickX[i], clickY[i]);
+                    context.stroke();
+                } else {
+                    context.lineTo(clickX[i], clickY[i]);
+                    context.stroke();
+                }
+            }
+        }
+
+        /**
+         * Draw the newly added point.
+         * @return {void}
+         */
+        function drawNew() {
+            var i = clickX.length - 1
+            if (!clickDrag[i]) {
+                if (clickX.length == 0) {
+                    context.beginPath();
+                    context.moveTo(clickX[i], clickY[i]);
+                    context.stroke();
+                } else {
+                    context.closePath();
+
+                    context.beginPath();
+                    context.moveTo(clickX[i], clickY[i]);
+                    context.stroke();
+                }
+            } else {
+                context.lineTo(clickX[i], clickY[i]);
+                context.stroke();
+            }
+        }
+
+        function mouseDownEventHandler(e) {
+            paint = true;
+            var x = e.pageX - canvas.offsetLeft;
+            var y = e.pageY - canvas.offsetTop;
+            if (paint) {
+                addClick(x, y, false);
+                drawNew();
+            }
+        }
+
+        function touchstartEventHandler(e) {
+            paint = true;
+            if (paint) {
+                addClick(e.touches[0].pageX - canvas.offsetLeft, e.touches[0].pageY - canvas.offsetTop, false);
+                drawNew();
+            }
+        }
+
+        function mouseUpEventHandler(e) {
+            context.closePath();
+            paint = false;
+        }
+
+        function mouseMoveEventHandler(e) {
+            var x = e.pageX - canvas.offsetLeft;
+            var y = e.pageY - canvas.offsetTop;
+            if (paint) {
+                addClick(x, y, true);
+                drawNew();
+            }
+        }
+
+        function touchMoveEventHandler(e) {
+            if (paint) {
+                addClick(e.touches[0].pageX - canvas.offsetLeft, e.touches[0].pageY - canvas.offsetTop, true);
+                drawNew();
+            }
+        }
+
+        function setUpHandler(isMouseandNotTouch, detectEvent) {
+            removeRaceHandlers();
+            if (isMouseandNotTouch) {
+                canvas.addEventListener('mouseup', mouseUpEventHandler);
+                canvas.addEventListener('mousemove', mouseMoveEventHandler);
+                canvas.addEventListener('mousedown', mouseDownEventHandler);
+                mouseDownEventHandler(detectEvent);
+            } else {
+                canvas.addEventListener('touchstart', touchstartEventHandler);
+                canvas.addEventListener('touchmove', touchMoveEventHandler);
+                canvas.addEventListener('touchend', mouseUpEventHandler);
+                touchstartEventHandler(detectEvent);
+            }
+        }
+
+        function mouseWins(e) {
+            setUpHandler(true, e);
+        }
+
+        function touchWins(e) {
+            setUpHandler(false, e);
+        }
+
+        function removeRaceHandlers() {
+            canvas.removeEventListener('mousedown', mouseWins);
+            canvas.removeEventListener('touchstart', touchWins);
+        }
+
+        function clearSketcher() {
+            var canvas = document.getElementById('sketcher');
+            var context = canvas.getContext("2d");
+            context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+            context.fillStyle = "black";
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            clickX = [];
+            clickY = [];
+            clickDrag = [];
+
+
+        }
+        function predictOnServer() {
+            //https://stackoverflow.com/questions/13198131/how-to-save-an-html5-canvas-as-an-image-on-a-server
+
+            var canvas = document.getElementById('sketcher');
+            var dataURL = canvas.toDataURL();
+            $.ajax({
+                type: "POST",
+                url: "/upload",
+                data: {
+                    imgBase64: dataURL
+                }
+            }).done(function(result) {
+                console.log(result);
+                //document.getElementById('result1').innerText = result;
+                //document.getElementById('result2').innerText = result;
+            });
+        }
+
+        canvas.addEventListener('mousedown', mouseWins);
+        canvas.addEventListener('touchstart', touchWins);
+</script>
+</body>
+</html>
